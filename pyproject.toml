@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sigGen"
+authors = [{name = "samir539"}]
+description = "generating high quality synthetic time series data efficiently using signature methods and diffusion - applied to a range of fields"
+readme = "README.md"
+dependencies = ["numpy==1.26.4", "torch == 1.12.1",
+"torchvision == 0.13.1"]
+version= "0.1.0-dev"
+
+
+
