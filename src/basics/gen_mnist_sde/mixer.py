@@ -52,4 +52,37 @@ class MLPBlock(nn.Module):
 
 
 class MixerLayer():
-    pass
+    """
+    class to implement the Mixer layer of the MLPMixer
+    
+    class parameters:
+    ----------------
+
+
+    attributes:
+    ----------
+    layer_norm 
+    MLP1 = instance of the mixer block class which represents MLP1
+    MLP2 = instance of the mixer block class which reprsents MLP2
+
+
+    methods:
+    -------
+    forward: run forward pass of MLPMixer Layer
+    """
+    def __init__(self,MLP1, MLP2):
+        super().__init__()
+        self.layernorm = nn.layerNorm()
+        self.MLP1 = MLP1
+        self.MLP2 = MLP2
+
+    def forward(self,X):
+        """
+        Input data
+        """
+        X = self.MLP1.forward(self.layernorm(X)) + X
+        X = self.MLP2.forward(self.layernorm(X.T)) + X.T
+        return X
+
+
+
