@@ -51,7 +51,7 @@ class MLPBlock(nn.Module):
         return X
 
 
-class MixerLayer():
+class MixerLayer(nn.Module):
     """
     class to implement the Mixer layer of the MLPMixer
     
@@ -85,4 +85,45 @@ class MixerLayer():
         return X
 
 
+class MLPMixer(nn.Module):
+    """
+    class to implement full MLP mixer module 
+    
+    class parameters:
+    ---------------
+
+    attributes:
+    ----------
+    embedding_dim = the dimension of the latent space
+    embedding_layer  = embedding layer used to embed patches into a latent space
+    mixer_layer_num = the number of mixer layers in the model 
+    global_pooling  = global pooling layer
+    output_fc = fully connected output layer
+    X = input data in form (n_image, channels, patches)
+
+
+    methods:
+    --------
+    forward: run a forward pass of the full module 
+    """
+
+    def __init__(self, embedding_dim, mixer_layer_num):
+        super().__init__()
+        self.embedding_dim = embedding_dim
+        self.embedding_layer = nn.linear()
+        self.mixer_layer_num = mixer_layer_num
+        
+        #embedding 
+
+        #
+
+
+
+#embedding functionality 
+#patch generation and handling 
+    
+## make model in main ##
+#handle MNIST
+#global pooling and fully connected 
+#training loop 
 
