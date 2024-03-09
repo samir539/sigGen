@@ -108,7 +108,7 @@ class MLPMixer(nn.Module):
     mixer_layer_num = the number of mixer layers in the model 
     global_pooling  = global pooling layer
     output_fc = fully connected output layer
-    X = input data in form (n_image, channels, patches)
+    X = input data in form (n_image, channels, width, height)
 
 
     methods:
@@ -116,12 +116,11 @@ class MLPMixer(nn.Module):
     forward: run a forward pass of the full module 
     """
 
-    def __init__(self,image_width,image_height,channel_dim,patch_dim, patch_mlp_dim, channel_mlp_dim, mixer_layer_num,class_num):
+    def __init__(self,image_width,image_height,channels,channel_dim,patch_dim, patch_mlp_dim, channel_mlp_dim, mixer_layer_num,class_num):
         super().__init__()
         self.num_patches = (image_height*image_width)//(patch_dim**2)
-        self.n_patches_w = np.sqrt(self.num_patches)
-        self.n_patches_h = np.sqrt(self.num_patches)
-        self.embedding_layer = nn.linear(patch_dim,channel_dim)
+        self.patch_dim = patch_dim
+        self.embedding_layer = nn.linear(channels*patch_dim*patch_dim,channel_dim)
         self.mixerlayers = nn.ModuleList([MixerLayer(channel_dim=channel_dim,
                                                      patch_mlp_dim=patch_mlp_dim, 
                                                      patch_number=self.num_patches,
@@ -131,13 +130,13 @@ class MLPMixer(nn.Module):
     def forward(self, X):
         """
         forward pass of the full mlp mixer
-        :param X: input images of form (n_sample, width, height)
+        :param X: input images of form (n_sample,channel,width, height)
         :return y: the class label
         """
 
 
         #into patches
-        X = rearrange(X, "n_sample (w pw) (h ph) -> n_sample (pw ph) (w h)", pw=self.n_patches_w, ph=self.n_patches_h)
+        X = rearrange(X, "n_sample c (w p1) (h p1) -> n_sample (w h) (c p1 p2)", p1=self.patch_dim, p2=self.patch_dim)
         #embedding 
         X = self.embedding_layer(X) # X dim [n_sample, n_patches, channels]
         X = rearrange(X, "n_sample n_patches channels -> n_sample channels n_patches")
