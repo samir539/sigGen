@@ -2,8 +2,11 @@
 /sigGenenv
 
 #pg
-pg.py
-./src/basics/data/
+src/basics/data
+src/pg.py
+src/basics/gen_mnist_sde/data
+src/basics/gen_mnist_sde/test.py
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
