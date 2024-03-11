@@ -36,8 +36,8 @@ class MLPBlock(nn.Module):
         super().__init__()
         dim = dim 
         layer_width = layer_width
-        self.linear1 = nn.linear(dim,layer_width)
-        self.linear2 = nn.linear(layer_width,dim)
+        self.linear1 = nn.Linear(dim,layer_width)
+        self.linear2 = nn.Linear(layer_width,dim)
         self.activation = nn.GELU()
 
     def forward(self,X):
@@ -73,8 +73,8 @@ class MixerLayer(nn.Module):
     """
     def __init__(self, channel_dim, patch_mlp_dim, patch_number, channel_mlp_dim):
         super().__init__()
-        self.layernorm1 = nn.layerNorm(channel_dim)
-        self.layernorm2 = nn.layerNorm(channel_dim)
+        self.layernorm1 = nn.LayerNorm(channel_dim)
+        self.layernorm2 = nn.LayerNorm(channel_dim)
         self.MLP1 = MLPBlock(patch_number, patch_mlp_dim)
         self.MLP2 = MLPBlock(channel_dim, channel_mlp_dim)
 
@@ -83,10 +83,15 @@ class MixerLayer(nn.Module):
         Input data X with dim (n_samples, patches, channels)
         """
         # X has shape [n_samples, patches, channels]
-        X = rearrange(X, 'n_samples patches channels -> n_samples channels patches')
-        X = self.MLP1.forward(self.layernorm1(X)) + X
-        X = rearrange(X, 'n_samples channels patches -> n_samples patches channels')
-        X = self.MLP2.forward(self.layernorm2(X)) + X
+        print("this is X before rearnage",X.shape)
+        y = self.layernorm1(X)
+        y = rearrange(y, 'n_samples patches channels -> n_samples channels patches')
+        print("this is X after rearange",X.shape)
+        y = self.MLP1.forward(y)
+        y = rearrange(y, 'n_samples channels patches -> n_samples patches channels')
+        X = X + y
+        y = self.layernorm2(X)
+        X = X + self.MLP2.forward(y)
         return X
 
 
@@ -120,12 +125,16 @@ class MLPMixer(nn.Module):
         super().__init__()
         self.num_patches = (image_height*image_width)//(patch_dim**2)
         self.patch_dim = patch_dim
-        self.embedding_layer = nn.linear(channels*patch_dim*patch_dim,channel_dim)
+        self.embedding_layer = nn.Linear(channels*patch_dim*patch_dim,channel_dim)
         self.mixerlayers = nn.ModuleList([MixerLayer(channel_dim=channel_dim,
                                                      patch_mlp_dim=patch_mlp_dim, 
                                                      patch_number=self.num_patches,
                                                      channel_mlp_dim= channel_mlp_dim) for i in range(mixer_layer_num)])
-        self.fully_connected_classfier_layer = nn.linear(channel_dim,class_num)
+        self.pre_head_norm = nn.LayerNorm(channel_dim)
+        self.fully_connected_classfier_layer = nn.Linear(channel_dim,class_num)
+
+    def __repr__(self):
+        return "this is an instance of mlp mixer model"
     
     def forward(self, X):
         """
@@ -136,24 +145,41 @@ class MLPMixer(nn.Module):
 
 
         #into patches
-        X = rearrange(X, "n_sample c (w p1) (h p1) -> n_sample (w h) (c p1 p2)", p1=self.patch_dim, p2=self.patch_dim)
+        X = rearrange(X, "n_sample c (w p1) (h p2) -> n_sample (w h) (c p1 p2)", p1=self.patch_dim, p2=self.patch_dim)
         #embedding 
         X = self.embedding_layer(X) # X dim [n_sample, n_patches, channels]
-        X = rearrange(X, "n_sample n_patches channels -> n_sample channels n_patches")
         # N mixer layers
         for layer in self.mixerlayers:
             X = layer(X) # X[n_sample, n_patches, channels]
         
+
+        X = self.pre_head_norm(X)
         # global average pooling
         X = X.mean(dim=1) #X dim [n_sample, channels]
+
         # class prediction with linear layer 
         y = self.fully_connected_classfier_layer(X) # X dim [n_samples, n_class]
         return y 
 
 
 
+if __name__ == "__main__":
+    test_image = torch.rand(1,3,64,64)
+    image_height, image_width = test_image.shape[-2], test_image.shape[-1]
+    channels = test_image.shape[1]
+    channel_dim = 21 #hidden val
+    patch_dim = 8
+    patch_mlp_dim = 32
+    channel_mlp_dim = 32
+    mixer_layer_num = 2
+    class_num = 10
+    myMixer = MLPMixer(image_width,image_height,channels,channel_dim,patch_dim,patch_mlp_dim,channel_mlp_dim,mixer_layer_num,class_num)
+    print(repr(myMixer))
+    output = myMixer.forward(test_image)
+    print("this is the output of a forward pass of mlp mixer", output)
+    
 
-
+    
 
 #embedding functionality 
 #patch generation and handling 
