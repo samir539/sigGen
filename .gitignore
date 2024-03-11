@@ -3,6 +3,7 @@
 
 #pg
 pg.py
+./src/basics/data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
