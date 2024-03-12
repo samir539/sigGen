@@ -22,7 +22,6 @@ test_loader = DataLoader(train_set,batch_size=16, shuffle=False)
 #model params
 data_iter = iter(train_loader)
 images,label = data_iter.next()
-print("hellohello")
 first_img = images[0]
 first_label = label[0]
 image_height, image_width = first_img.shape[-2], first_img.shape[-1]
@@ -51,12 +50,10 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MLP_mixer_model.to(device)
 
 epoch_num = 20
-print("hello")
 
 for i in tqdm(range(epoch_num)):
     MLP_mixer_model.train() #put into train mode
     running_loss = 0.0
-    print("hello2")
     for images,labels in train_loader:
         images,labels = images.to(device), labels.to(device)    #put data on device 
 
