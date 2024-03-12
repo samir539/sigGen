@@ -191,6 +191,8 @@ if __name__ == "__main__":
     myMixer = MLPMixer(image_width,image_height,channels,channel_dim,patch_dim,patch_mlp_dim,channel_mlp_dim,mixer_layer_num,class_num)
     print(repr(myMixer))
     output = myMixer.forward(test_image)
+    print(output.size())
+    
     print("this is the output of a forward pass of mlp mixer", output)
     
 
