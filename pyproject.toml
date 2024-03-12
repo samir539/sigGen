@@ -8,7 +8,7 @@ authors = [{name = "samir539"}]
 description = "generating high quality synthetic time series data efficiently using signature methods and diffusion - applied to a range of fields"
 readme = "README.md"
 dependencies = ["numpy==1.26.4", "torch == 1.12.1",
-"torchvision == 0.13.1", "matplotlib == 3.8.3", "einops == 0.7.0"]
+"torchvision == 0.13.1", "matplotlib == 3.8.3", "einops == 0.7.0", "tqdm == 4.66.2"]
 version= "0.1.0-dev"
 
 
