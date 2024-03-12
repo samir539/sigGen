@@ -38,7 +38,6 @@ learning_rate = 0.1
 
 #init model
 MLP_mixer_model = MLPMixer(image_width,image_height,channels,channel_dim,patch_dim,patch_mlp_dim,channel_mlp_dim,mixer_layer_num,class_num)
-print(repr(MLP_mixer_model))
 
 #loss 
 loss_criterion = nn.CrossEntropyLoss()
@@ -67,19 +66,6 @@ for i in tqdm(range(epoch_num)):
         optimiser.step()
 
         running_loss += loss.item()
-        # print(loss.item())
-        # print("hello",i)
     epoch_loss = running_loss/len(train_loader)
     print(f"The loss for epoch {i} is {epoch_loss:.4} ")
 
-#Write training loop
-
-# for every batch in MNIST  do a forward pass and get predition 
-# compare prediction to true label and compute LOSS
-# update grads 
-# repeat until converged
-
-
-# Call training loop
-
-#test model inference
