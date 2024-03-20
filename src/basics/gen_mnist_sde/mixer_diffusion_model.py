@@ -4,6 +4,8 @@ from torchvision import datasets,transforms
 from torch.utils.data import DataLoader
 import numpy as np
 from mixer import MLPMixer
+from torch.optim import Adam
+import tqdm 
 
 #######
 ##SDE##
@@ -41,8 +43,6 @@ def loss_function(data,int_beta,weight,score_model):
     loss = torch.mean(torch.sum((score + noise/std[:,None,None,None])**2, dim=(1,2,3))) #scalar
 
 
-    
-
 
 #batch loss function
 
@@ -52,3 +52,27 @@ def loss_function(data,int_beta,weight,score_model):
 #make step
 
 #training loop
+
+def train(model):
+    """
+    function to train the scorenet
+    """
+    score_model = model
+    n_epochs = 3 #epochs
+    learning_rate = 0.1 #learning_rate
+    batch_size = 32 #batch size
+    optmiser = Adam(score_model.parameters(),lr=learning_rate)
+    #load MNIST
+    transform = transforms.Compose([transforms.ToTensor(),])
+    MNIST_data = datasets.MNIST(root='./data', train=True, download=True,transform=transform)
+    data_loader = DataLoader(MNIST_data,batch_size=batch_size, shuffle=True)
+    
+    #CPU GPU
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    score_model.to(device)
+
+    #loop over mini-batches
+    for i in n_epochs:
+        pass
+
+
