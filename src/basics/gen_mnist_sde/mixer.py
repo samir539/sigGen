@@ -139,9 +139,13 @@ class MLPMixer(nn.Module):
         :param t1: the value of t at the end of the diffusion (forward process) 
         """
         super().__init__()
+        self.image_height = image_height
+        self.image_width = image_width
+        self.channels = channels
         self.num_patches = (image_height*image_width)//(patch_dim**2)
         self.patch_dim = patch_dim
         self.embedding_layer = nn.Linear((channels+1)*patch_dim*patch_dim,channel_dim)
+        self.embedding_inv_layer = nn.Linear(channel_dim, (channels)*patch_dim*patch_dim)
         self.mixerlayers = nn.ModuleList([MixerLayer(patch_number=self.num_patches,
                                                      patch_mlp_dim=patch_mlp_dim,
                                                      channel_dim=channel_dim, 
@@ -153,7 +157,7 @@ class MLPMixer(nn.Module):
     def __repr__(self):
         return "this is an instance of mlp mixer model"
     
-    def forward(self, X,t):
+    def forward(self, X,t,score=False):
         """
         forward pass of the full mlp mixer
         :param t: the value for t (the score is computed at time t of the diffusion)
@@ -165,9 +169,9 @@ class MLPMixer(nn.Module):
         t = torch.tensor(t)
         t = t/self.t1
         t = repeat(t, "-> n_sample 1 w h", n_sample=X.shape[0], w=X.shape[2],h=X.shape[3])
-        X = torch.cat((X,t),dim=1) # X dim [n_sample, c+1, width, height]
+        X = torch.cat((X,t),dim=1) # X dim [n_sample, c+1, width, height    ]
         #into patches
-        X = rearrange(X, "n_sample c (w p1) (h p2) -> n_sample (w h) (c p1 p2)", p1=self.patch_dim, p2=self.patch_dim)
+        X = rearrange(X, "n_sample c (w p1) (h p2) -> n_sample (w h) (c p1 p2)", c=self.channels+1, p1=self.patch_dim, p2=self.patch_dim)
         #embedding 
         X = self.embedding_layer(X) # X dim [n_sample, n_patches, channels]
         # N mixer layers
@@ -175,10 +179,17 @@ class MLPMixer(nn.Module):
             X = layer(X) # X[n_sample, n_patches, channels]
         
         # pre-classification head layer norm
-        X = self.pre_head_norm(X)
+        X = self.pre_head_norm(X) #X[n_sample, n_patches, channels]
+
+        #if used as a score net
+        if score:
+            X = self.embedding_inv_layer(X)
+            X = rearrange(X, "n_sample (w h) (c p1 p2) -> n_sample c (w p1) (h p2)", p1=self.patch_dim, p2=self.patch_dim, w=self.image_width//self.patch_dim, h=self.image_height//self.patch_dim)
+            return X
+        
+
         # global average pooling
         X = X.mean(dim=1) #X dim [n_sample, channels]
-
         # class prediction with linear layer 
         y = self.fully_connected_classfier_layer(X) # X dim [n_samples, n_class]
         return y 
@@ -197,9 +208,8 @@ if __name__ == "__main__":
     class_num = 10
     myMixer = MLPMixer(image_width,image_height,channels,channel_dim,patch_dim,patch_mlp_dim,channel_mlp_dim,mixer_layer_num,class_num,1)
     print(repr(myMixer))
-    output = myMixer.forward(test_image,0.5)
+    output = myMixer.forward(test_image,0.5,score=True)
     print(output.size())
-    
     print("this is the output of a forward pass of mlp mixer", output)
     
 
