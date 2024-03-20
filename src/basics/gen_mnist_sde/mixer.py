@@ -165,12 +165,9 @@ class MLPMixer(nn.Module):
         t = torch.tensor(t)
         t = t/self.t1
         t = repeat(t, "-> n_sample 1 w h", n_sample=X.shape[0], w=X.shape[2],h=X.shape[3])
-        print("size X", X.shape, "size t", t.shape)
-        X = torch.cat((X,t),dim=1)
-        print("this is the shape of X", X.shape)
+        X = torch.cat((X,t),dim=1) # X dim [n_sample, c+1, width, height]
         #into patches
         X = rearrange(X, "n_sample c (w p1) (h p2) -> n_sample (w h) (c p1 p2)", p1=self.patch_dim, p2=self.patch_dim)
-        print(X.shape,"pre embed")
         #embedding 
         X = self.embedding_layer(X) # X dim [n_sample, n_patches, channels]
         # N mixer layers
