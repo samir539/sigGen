@@ -35,6 +35,11 @@ def loss_function(data,int_beta,weight,score_model):
     """
     t = torch.rand(data.shape[0])
     mean,std = perturbation_kernel(data,int_beta,t)
+    noise = torch.randn_like(data)
+    perturbed_x = data+ noise*mean + std[:,None,None,None]
+    score = score_model(perturbed_x,t)
+    loss = torch.mean(torch.sum((score + noise/std[:,None,None,None])**2, dim=(1,2,3)))
+
     #sample t
     #perturbed x val
     #score
