@@ -3,7 +3,7 @@ import torch
 import torchvision 
 import numpy as np
 import matplotlib.pyplot as plt
-from einops import rearrange
+from einops import rearrange, repeat
 
 ## generate test vector which represents an image ##
 test_image = np.random.rand(64,64)
@@ -124,7 +124,7 @@ class MLPMixer(nn.Module):
     forward: run a forward pass of the full module 
     """
 
-    def __init__(self,image_width,image_height,channels,channel_dim,patch_dim, patch_mlp_dim, channel_mlp_dim, mixer_layer_num,class_num):
+    def __init__(self,image_width,image_height,channels,channel_dim,patch_dim, patch_mlp_dim, channel_mlp_dim, mixer_layer_num,class_num,t1):
         """
 
         :param image_width: the width of the images
@@ -136,31 +136,41 @@ class MLPMixer(nn.Module):
         :param channel_mlp_dim: the width of the channel mixing mlp (MLP2)
         :param mixer_layer_num: the number of mixer layer blocks
         :param class_num: the number of possible target classes
+        :param t1: the value of t at the end of the diffusion (forward process) 
         """
         super().__init__()
         self.num_patches = (image_height*image_width)//(patch_dim**2)
         self.patch_dim = patch_dim
-        self.embedding_layer = nn.Linear(channels*patch_dim*patch_dim,channel_dim)
+        self.embedding_layer = nn.Linear((channels+1)*patch_dim*patch_dim,channel_dim)
         self.mixerlayers = nn.ModuleList([MixerLayer(patch_number=self.num_patches,
                                                      patch_mlp_dim=patch_mlp_dim,
                                                      channel_dim=channel_dim, 
                                                      channel_mlp_dim= channel_mlp_dim) for i in range(mixer_layer_num)])
         self.pre_head_norm = nn.LayerNorm(channel_dim)
         self.fully_connected_classfier_layer = nn.Linear(channel_dim,class_num)
+        self.t1 = t1
 
     def __repr__(self):
         return "this is an instance of mlp mixer model"
     
-    def forward(self, X):
+    def forward(self, X,t):
         """
         forward pass of the full mlp mixer
+        :param t: the value for t (the score is computed at time t of the diffusion)
         :param X: input images of form (n_sample,channel,width, height)
         :return y: the class label outputs (1, n_classes)
         """
 
-
+        #get time as fraction
+        t = torch.tensor(t)
+        t = t/self.t1
+        t = repeat(t, "-> n_sample 1 w h", n_sample=X.shape[0], w=X.shape[2],h=X.shape[3])
+        print("size X", X.shape, "size t", t.shape)
+        X = torch.cat((X,t),dim=1)
+        print("this is the shape of X", X.shape)
         #into patches
         X = rearrange(X, "n_sample c (w p1) (h p2) -> n_sample (w h) (c p1 p2)", p1=self.patch_dim, p2=self.patch_dim)
+        print(X.shape,"pre embed")
         #embedding 
         X = self.embedding_layer(X) # X dim [n_sample, n_patches, channels]
         # N mixer layers
@@ -188,9 +198,9 @@ if __name__ == "__main__":
     channel_mlp_dim = 32
     mixer_layer_num = 2
     class_num = 10
-    myMixer = MLPMixer(image_width,image_height,channels,channel_dim,patch_dim,patch_mlp_dim,channel_mlp_dim,mixer_layer_num,class_num)
+    myMixer = MLPMixer(image_width,image_height,channels,channel_dim,patch_dim,patch_mlp_dim,channel_mlp_dim,mixer_layer_num,class_num,1)
     print(repr(myMixer))
-    output = myMixer.forward(test_image)
+    output = myMixer.forward(test_image,0.5)
     print(output.size())
     
     print("this is the output of a forward pass of mlp mixer", output)
